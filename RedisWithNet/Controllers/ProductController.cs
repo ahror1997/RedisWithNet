@@ -22,7 +22,7 @@ namespace RedisWithNet.Controllers
         [HttpGet]
         public IEnumerable<Product> GetProducts()
         {
-            var cacheData = cacheService.GetData<IEnumerable<Product>>("product");
+            var cacheData = cacheService.GetData<IEnumerable<Product>>(key);
             if (cacheData is not null)
             {
                 return cacheData;
@@ -30,7 +30,7 @@ namespace RedisWithNet.Controllers
 
             var expirationTime = DateTimeOffset.Now.AddMinutes(5.0);
             cacheData = dataContext.Products.ToList();
-            cacheService.SetData<IEnumerable<Product>>("product", cacheData, expirationTime);
+            cacheService.SetData<IEnumerable<Product>>(key, cacheData, expirationTime);
             return cacheData;
         }
 
@@ -38,7 +38,7 @@ namespace RedisWithNet.Controllers
         public Product Get(int id)
         {
             Product filteredData;
-            var cacheData = cacheService.GetData<IEnumerable<Product>>("product");
+            var cacheData = cacheService.GetData<IEnumerable<Product>>(key);
             if (cacheData is not null)
             {
                 filteredData = cacheData.Where(p => p.Id == id).FirstOrDefault();
@@ -65,13 +65,16 @@ namespace RedisWithNet.Controllers
             dataContext.SaveChanges();
         }
 
-        [HttpDelete]
+        [HttpDelete("{id}")]
         public void Delete(int id)
         {
             var product = dataContext.Products.FirstOrDefault(p => p.Id == id);
-            dataContext.Products.Remove(product);
-            cacheService.RemoveData(key);
-            dataContext.SaveChanges();
+            if (product is not null)
+            {
+                dataContext.Products.Remove(product);
+                cacheService.RemoveData(key);
+                dataContext.SaveChanges();
+            }
         }
     }
 }
